@@ -1,96 +1,112 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_shopsmart/util/my_button.dart';
+import 'package:flutter_shopsmart/util/utils.dart';
+class DialogBox extends StatelessWidget {
+  final Function(String name, String qty, String category) onSave;
 
-class DialogBox extends StatefulWidget {
-  final Function(String, String, String) onSave;
-
-  const DialogBox({super.key, required this.onSave});
-
-  @override
-  State<DialogBox> createState() => _DialogBoxState();
-}
-
-class _DialogBoxState extends State<DialogBox> {
-  final TextEditingController itemController = TextEditingController();
-  final TextEditingController qtyController = TextEditingController();
-  String? selectedCategory;
-
-  //dadagdagan pa to
-  List<DropdownMenuItem<String>> category = const [
-    DropdownMenuItem(value: "Vegetable", child: Text("Vegetable")),
-    DropdownMenuItem(value: "Fruit", child: Text("Fruit")),
-    DropdownMenuItem(value: "Meat", child: Text("Meat")),
-  ];
+  const DialogBox({
+    super.key,
+    required this.onSave,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        AlertDialog(
-          backgroundColor: Colors.white,
-          content: SizedBox(
-            height: 320,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final itemController = TextEditingController();
+    final qtyController = TextEditingController();
+    String? selectedCategory;
+
+    List<DropdownMenuItem<String>> categories = const [
+      DropdownMenuItem(value: "Vegetable", child: Text("Vegetable")),
+      DropdownMenuItem(value: "Fruit", child: Text("Fruit")),
+      DropdownMenuItem(value: "Meat", child: Text("Meat")),
+    ];
+
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      title: Text("Add Item"),
+      content: SizedBox(
+        height: 320,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: itemController,
+              decoration: InputDecoration(
+                hintText: "Insert item name",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: qtyController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: "Insert QTY/KG",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                labelText: 'Select Category',
+                border: OutlineInputBorder(),
+              ),
+              value: selectedCategory,
+              items: categories,
+              onChanged: (value) {
+                selectedCategory = value;
+              },
+            ),
+            Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text("Add Item", style: TextStyle(fontSize: 20)),
-                SizedBox(height: 10),
-                TextField(
-                  controller: itemController,
-                  decoration: InputDecoration(
-                    hintText: "Insert item name",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 10),
-                TextField(
-                  controller: qtyController,
-                  decoration: InputDecoration(
-                    hintText: "Insert QTY/KG",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Select Category',
-                  ),
-                  value: selectedCategory,
-                  items: category,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCategory = value;
-                    });
+                TextButton(
+                  onPressed: () {
+                    String name = itemController.text.trim();
+                    String qty = qtyController.text.trim();
+                    String category = selectedCategory ?? "";
+
+                    // Validation
+                    if (name.isEmpty || qty.isEmpty || category.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("All fields are required!"),
+                        backgroundColor: Colors.red,
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (!RegExp(r'^\d+$').hasMatch(qty)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Quantity must be a number!"),
+                        backgroundColor: Colors.red,
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                    return;
+                  }
+
+                    onSave(name, qty, category);
+                    Navigator.pop(context); // Close dialog
                   },
+                  child: Text("Save"),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    MyButton(
-                      text: "Save",
-                      onPressed: () {
-                        widget.onSave(
-                          itemController.text,
-                          qtyController.text,
-                          selectedCategory ?? "",
-                        );
-                        Navigator.pop(context);
-                      },
-                    ),
-                    MyButton(
-                      text: "Cancel",
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
+                TextButton(
+                  onPressed: Navigator.of(context).pop,
+                  child: Text("Cancel"),
                 ),
               ],
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

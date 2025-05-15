@@ -12,20 +12,32 @@ class _AdditempageState extends State<Additempage> {
   List<Map<String, String>> items = [];
 
   void newitembox() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return DialogBox(
-          onSave: (name, qty, category) {
-            setState(() {
-              items.add({'name': name, 'qty': qty, 'category': category});
-            });
-          },
-        );
-      },
-    );
-  }
-
+  showDialog(
+    context: context,
+    builder: (context) {
+      return DialogBox(
+        onSave: (name, qty, category) {
+          setState(() {
+            items.add({'name': name, 'qty': qty, 'category': category});
+          });
+        },
+      );
+    },
+  );
+}
+void showCenteredToast(BuildContext context, String message) {
+  final scaffold = ScaffoldMessenger.of(context);
+  scaffold.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Colors.red,
+      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+      duration: Duration(seconds: 3),
+      action: SnackBarAction(label: 'OK', onPressed: scaffold.hideCurrentSnackBar),
+    ),
+  );
+}
   void deleteItem(int index) {
     setState(() {
       items.removeAt(index);
@@ -37,7 +49,7 @@ class _AdditempageState extends State<Additempage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade300,
       appBar: AppBar(
-        title: Text("Add Item u focc not"),
+        title: Text("Add Item"),
         backgroundColor: Colors.grey.shade300,
       ),
       floatingActionButton: FloatingActionButton(
