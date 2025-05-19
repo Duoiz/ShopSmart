@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_shopsmart/additempage.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_shopsmart/list_provider.dart';
+import 'additempage.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class AddList extends StatefulWidget {
-  final Function(String, String, List<DateTime>) onAddList;
-
-  const AddList({super.key, required this.onAddList});
+  const AddList({super.key});
 
   @override
   State<AddList> createState() => _AddListState();
@@ -16,14 +16,16 @@ class _AddListState extends State<AddList> {
   DateTime selectedDay = DateTime.now();
   List<DateTime> highlightedDates = [];
   String listName = '';
-
   List<DropdownMenuItem<String>> repeat = const [
     DropdownMenuItem(value: "Weekly", child: Text("Weekly")),
     DropdownMenuItem(value: "Monthly", child: Text("Monthly")),
   ];
+  List<Map<String, String>> currentItems = [];
 
   @override
   Widget build(BuildContext context) {
+    final listProvider = Provider.of<ListProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Add List"),
@@ -31,10 +33,11 @@ class _AddListState extends State<AddList> {
         actions: [
           TextButton(
             onPressed: () {
-              widget.onAddList(
+              listProvider.addList(
                 listName,
                 selectedRepeat ?? '',
                 highlightedDates,
+                currentItems,
               );
               Navigator.pop(context); // Go back to MyLists after adding
             },
@@ -51,7 +54,7 @@ class _AddListState extends State<AddList> {
       backgroundColor: Colors.grey.shade300,
       body: ListView(
         children: [
-          // Calendaryo
+          // Calendar
           Padding(
             padding: const EdgeInsets.all(10),
             child: Container(
@@ -99,8 +102,7 @@ class _AddListState extends State<AddList> {
               ),
             ),
           ),
-
-          // List name input thingy
+          // List name input
           Padding(
             padding: const EdgeInsets.all(8),
             child: Container(
@@ -135,7 +137,6 @@ class _AddListState extends State<AddList> {
               ),
             ),
           ),
-
           // Repeat
           Padding(
             padding: const EdgeInsets.all(8),
@@ -167,8 +168,7 @@ class _AddListState extends State<AddList> {
               ),
             ),
           ),
-
-          // Add item button thingy
+          // Add item button
           Padding(
             padding: const EdgeInsets.all(8),
             child: Container(
@@ -180,11 +180,16 @@ class _AddListState extends State<AddList> {
                 color: Colors.white,
               ),
               child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => Additempage()),
+                    MaterialPageRoute(builder: (context) => AddItemPage()),
                   );
+                  if (result != null && result is List<Map<String, String>>) {
+                    setState(() {
+                      currentItems = result;
+                    });
+                  }
                 },
                 child: Center(
                   child: Text(
@@ -203,23 +208,19 @@ class _AddListState extends State<AddList> {
   void _highlightDates() {
     setState(() {
       highlightedDates.clear();
-      //hinahighlight ung days sa weekly
       if (selectedRepeat == "Weekly") {
         for (int i = 0; i < 12; i++) {
           highlightedDates.add(selectedDay.add(Duration(days: i * 7)));
         }
       } else if (selectedRepeat == "Monthly") {
-        // dapat for every month makikita ung date kaso wan ko ayaw gumana lamao
         for (int i = 0; i < 12; i++) {
           DateTime targetDate = DateTime(
             selectedDay.year,
             selectedDay.month + i,
             selectedDay.day,
           );
-
           int lastDayOfMonth =
               DateTime(targetDate.year, targetDate.month + 1, 0).day;
-
           if (targetDate.day > lastDayOfMonth) {
             targetDate = DateTime(
               targetDate.year,
@@ -227,7 +228,6 @@ class _AddListState extends State<AddList> {
               lastDayOfMonth,
             );
           }
-
           highlightedDates.add(targetDate);
         }
       }

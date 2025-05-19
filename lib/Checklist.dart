@@ -1,17 +1,56 @@
-//Di pa working ung computation dito sa backend pa yon
-
 import 'package:flutter/material.dart';
 
 class Checklist extends StatefulWidget {
-  const Checklist({super.key});
+  final Map<String, dynamic>? selectedList;
+
+  const Checklist({super.key, this.selectedList});
 
   @override
   State<Checklist> createState() => _ChecklistState();
 }
 
 class _ChecklistState extends State<Checklist> {
-  // Independent checkbox states
-  final Map<String, bool> _checkedItems = {"Apple": false, "Banana": false};
+  late Map<String, dynamic>? list;
+  late List<Map<String, String>> items;
+  late Map<String, bool> _checkedItems;
+  late Map<String, TextEditingController> _estPriceControllers;
+  late Map<String, TextEditingController> _actualPriceControllers;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Get items from selected list or use empty list
+    list = widget.selectedList;
+    items = list?['items'] ?? [];
+
+    // Initialize checkboxes
+    _checkedItems = {
+      for (var item in items) item['name']!: false
+    };
+
+    // Initialize price controllers
+    _estPriceControllers = {
+      for (var item in items)
+        item['name']!: TextEditingController(text: "0.00")
+    };
+
+    _actualPriceControllers = {
+      for (var item in items)
+        item['name']!: TextEditingController(text: "0.00")
+    };
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _estPriceControllers.values) {
+      controller.dispose();
+    }
+    for (var controller in _actualPriceControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,21 +62,28 @@ class _ChecklistState extends State<Checklist> {
       ),
       body: Column(
         children: [
+          _buildHeaderRow(),
           Expanded(
-            child: ListView(
-              children: [
-                _buildHeaderRow(),
-                _buildChecklistRow("Apple", "2"),
-                _buildChecklistRow(
-                  "Banana",
-                  "1.5",
-                ), //eto ung mga item list na magbabago rin sa future pag mag babackend na
-              ],
-            ),
+            child: items.isEmpty
+                ? Center(
+                    child: Text(
+                      "No list selected. Tap a list from My Lists.",
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final itemName = item['name']!;
+                      final qty = item['qty'] ?? "1";
+
+                      return _buildChecklistRow(itemName, qty);
+                    },
+                  ),
           ),
           _buildBottomSummaryBar(),
           Container(height: 4),
-          //tinawag ung bottomsummarybar
         ],
       ),
     );
@@ -54,7 +100,7 @@ class _ChecklistState extends State<Checklist> {
             width: 160,
             color: Colors.grey[300],
             child: Text(
-              "Fruits",
+              "Item",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
@@ -85,7 +131,7 @@ class _ChecklistState extends State<Checklist> {
   }
 
   Widget _buildChecklistRow(String itemName, String qty) {
-    bool isChecked = _checkedItems[itemName] ?? false;
+    final isChecked = _checkedItems[itemName] ?? false;
 
     return Padding(
       padding: EdgeInsets.only(top: 8, left: 8, right: 8),
@@ -119,12 +165,11 @@ class _ChecklistState extends State<Checklist> {
             width: 65,
             padding: EdgeInsets.symmetric(horizontal: 2),
             child: TextField(
+              controller: _estPriceControllers[itemName],
+              keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 8,
-                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               ),
               style: TextStyle(fontSize: 12),
             ),
@@ -134,12 +179,11 @@ class _ChecklistState extends State<Checklist> {
             width: 65,
             padding: EdgeInsets.symmetric(horizontal: 2),
             child: TextField(
+              controller: _actualPriceControllers[itemName],
+              keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 8,
-                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               ),
               style: TextStyle(fontSize: 12),
             ),
@@ -161,34 +205,48 @@ class _ChecklistState extends State<Checklist> {
 
     return isChecked
         ? ColorFiltered(
-          colorFilter: const ColorFilter.matrix(<double>[
-            0.2126,
-            0.7152,
-            0.0722,
-            0,
-            0,
-            0.2126,
-            0.7152,
-            0.0722,
-            0,
-            0,
-            0.2126,
-            0.7152,
-            0.0722,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-          ]),
-          child: label,
-        )
+            colorFilter: const ColorFilter.matrix(<double>[
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+            ]),
+            child: label,
+          )
         : label;
   }
 
   Widget _buildBottomSummaryBar() {
+    int checkedCount = _checkedItems.values.where((v) => v).length;
+    int totalCount = _checkedItems.length;
+
+    double estTotal = 0.0;
+    double actualTotal = 0.0;
+
+    for (var item in items) {
+      String name = item['name']!;
+      try {
+        estTotal += double.tryParse(_estPriceControllers[name]?.text ?? "0.00") ?? 0.0;
+        actualTotal += double.tryParse(_actualPriceControllers[name]?.text ?? "0.00") ?? 0.0;
+      } catch (e) {}
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -198,22 +256,20 @@ class _ChecklistState extends State<Checklist> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Trippings sa checked ewan pero ung nga magbabago rin to ata
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Checked ${_checkedItems.values.where((v) => v).length}/${_checkedItems.length} items",
+                "Checked $checkedCount/$totalCount items",
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                "Est: ₱0.00  |  Actual: ₱0.00",
+                "Est: ₱${estTotal.toStringAsFixed(2)}  |  Actual: ₱${actualTotal.toStringAsFixed(2)}",
                 style: TextStyle(fontSize: 14),
               ),
               SizedBox(height: 4),
@@ -224,10 +280,10 @@ class _ChecklistState extends State<Checklist> {
                     style: TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                   Text(
-                    "Save more",
+                    estTotal > actualTotal ? "Save more!" : "Spent more",
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.green,
+                      color: estTotal > actualTotal ? Colors.green : Colors.red,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

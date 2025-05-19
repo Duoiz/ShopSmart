@@ -1,43 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_shopsmart/util/dialog_box.dart';
 
-class Additempage extends StatefulWidget {
-  const Additempage({super.key});
+class AddItemPage extends StatefulWidget {
+  const AddItemPage({super.key});
 
   @override
-  State<Additempage> createState() => _AdditempageState();
+  State<AddItemPage> createState() => _AddItemPageState();
 }
 
-class _AdditempageState extends State<Additempage> {
+class _AddItemPageState extends State<AddItemPage> {
   List<Map<String, String>> items = [];
 
-  void newitembox() {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return DialogBox(
-        onSave: (name, qty, category) {
-          setState(() {
-            items.add({'name': name, 'qty': qty, 'category': category});
-          });
-        },
-      );
-    },
-  );
-}
-void showCenteredToast(BuildContext context, String message) {
-  final scaffold = ScaffoldMessenger.of(context);
-  scaffold.showSnackBar(
-    SnackBar(
-      content: Text(message),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: Colors.red,
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-      duration: Duration(seconds: 3),
-      action: SnackBarAction(label: 'OK', onPressed: scaffold.hideCurrentSnackBar),
-    ),
-  );
-}
+  void newItemBox() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return DialogBox(
+          onSave: (name, qty, category) {
+            setState(() {
+              items.add({'name': name, 'qty': qty, 'category': category});
+            });
+          },
+        );
+      },
+    );
+  }
+
   void deleteItem(int index) {
     setState(() {
       items.removeAt(index);
@@ -51,9 +39,23 @@ void showCenteredToast(BuildContext context, String message) {
       appBar: AppBar(
         title: Text("Add Item"),
         backgroundColor: Colors.grey.shade300,
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, items); // Return items to previous screen
+            },
+            child: Text(
+              "Done",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: newitembox,
+        onPressed: newItemBox,
         backgroundColor: Colors.white,
         child: Icon(Icons.add),
       ),
@@ -139,6 +141,7 @@ void showCenteredToast(BuildContext context, String message) {
           );
         },
       ),
+
     );
   }
 }
