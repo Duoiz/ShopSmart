@@ -8,7 +8,7 @@ import 'package:flutter_shopsmart/MyLists.dart';
 import 'package:flutter_shopsmart/checklist.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -23,7 +23,7 @@ class _HomePageState extends State<HomePage> {
     final listProvider = Provider.of<ListProvider>(context);
 
     // Define pages here, inside build()
-    final List<Widget> _pages = [
+    final List<Widget> pages = [
       MyLists(),
       Dashboard(),
       Checklist(selectedList: listProvider.latestList),
@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.grey.shade300,
       ),
       backgroundColor: Colors.grey[300],
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
     );
   }
 }

@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:flutter_shopsmart/list_provider.dart';
 import 'additempage.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'notification_service.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AddList extends StatefulWidget {
   const AddList({super.key});
@@ -14,13 +18,23 @@ class AddList extends StatefulWidget {
 class _AddListState extends State<AddList> {
   String? selectedRepeat;
   DateTime selectedDay = DateTime.now();
+  TimeOfDay? selectedTime;
   List<DateTime> highlightedDates = [];
   String listName = '';
+  List<Map<String, String>> currentItems = [];
+
   List<DropdownMenuItem<String>> repeat = const [
     DropdownMenuItem(value: "Weekly", child: Text("Weekly")),
     DropdownMenuItem(value: "Monthly", child: Text("Monthly")),
   ];
-  List<Map<String, String>> currentItems = [];
+
+  late NotificationService notificationService;
+
+  @override
+  void initState() {
+    super.initState();
+    notificationService = Provider.of<NotificationService>(context, listen: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +47,22 @@ class _AddListState extends State<AddList> {
         actions: [
           TextButton(
             onPressed: () {
+              if (selectedTime == null) {
+                Fluttertoast.showToast(
+                  msg: "Time was not selected. Default set to 9:00 AM.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                );
+              }
+
               listProvider.addList(
                 listName,
                 selectedRepeat ?? '',
                 highlightedDates,
                 currentItems,
               );
-              Navigator.pop(context); // Go back to MyLists after adding
+
+              Navigator.pop(context);
             },
             child: Text(
               "Add to List",
@@ -54,7 +77,7 @@ class _AddListState extends State<AddList> {
       backgroundColor: Colors.grey.shade300,
       body: ListView(
         children: [
-          // Calendar
+          // Calendar UI - same as before
           Padding(
             padding: const EdgeInsets.all(10),
             child: Container(
@@ -82,15 +105,18 @@ class _AddListState extends State<AddList> {
                 availableGestures: AvailableGestures.none,
                 calendarBuilders: CalendarBuilders(
                   markerBuilder: (context, date, events) {
-                    if (highlightedDates.contains(date)) {
+                    if (highlightedDates.any((d) =>
+                        d.year == date.year &&
+                        d.month == date.month &&
+                        d.day == date.day)) {
                       return Container(
                         decoration: BoxDecoration(
-                          color: Colors.blue, // Circle color
+                          color: Colors.blue,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
                           child: Text(
-                            '${date.day}', //wan ko ano to basta nilagay ko nalang
+                            '${date.day}',
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -102,7 +128,50 @@ class _AddListState extends State<AddList> {
               ),
             ),
           ),
-          // List name input
+          // Time Picker UI - same as before
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              height: 70,
+              width: 350,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    "Time: ",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: selectedTime ?? TimeOfDay.now(),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            selectedTime = picked;
+                            _highlightDates();
+                          });
+                        }
+                      },
+                      child: Text(
+                        selectedTime != null
+                            ? selectedTime!.format(context)
+                            : "Select Time",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // List name input UI - same as before
           Padding(
             padding: const EdgeInsets.all(8),
             child: Container(
@@ -137,7 +206,7 @@ class _AddListState extends State<AddList> {
               ),
             ),
           ),
-          // Repeat
+          // Repeat dropdown UI - same as before
           Padding(
             padding: const EdgeInsets.all(8),
             child: Container(
@@ -168,34 +237,34 @@ class _AddListState extends State<AddList> {
               ),
             ),
           ),
-          // Add item button
+          // Add Item Button UI - same as before
           Padding(
             padding: const EdgeInsets.all(8),
-            child: Container(
-              padding: const EdgeInsets.all(15),
-              height: 70,
-              width: 350,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(40),
-                color: Colors.white,
-              ),
-              child: GestureDetector(
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => AddItemPage()),
-                  );
-                  if (result != null && result is List<Map<String, String>>) {
-                    setState(() {
-                      currentItems = result;
-                    });
-                  }
-                },
-                child: Center(
-                  child: Text(
-                    "Add Item",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(40),
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddItemPage()),
+                );
+                if (result != null && result is List<Map<String, String>>) {
+                  setState(() {
+                    currentItems = result;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                height: 70,
+                width: 350,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(40),
+                  color: Colors.white,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "Add Item",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -210,7 +279,10 @@ class _AddListState extends State<AddList> {
       highlightedDates.clear();
       if (selectedRepeat == "Weekly") {
         for (int i = 0; i < 12; i++) {
-          highlightedDates.add(selectedDay.add(Duration(days: i * 7)));
+          final date = selectedDay.add(Duration(days: i * 7));
+          final combined = _combineDateAndTime(date);
+          highlightedDates.add(combined);
+          _schedule(combined, listName, i);
         }
       } else if (selectedRepeat == "Monthly") {
         for (int i = 0; i < 12; i++) {
@@ -224,13 +296,59 @@ class _AddListState extends State<AddList> {
           if (targetDate.day > lastDayOfMonth) {
             targetDate = DateTime(
               targetDate.year,
-              targetDate.month + i,
+              targetDate.month,
               lastDayOfMonth,
             );
           }
-          highlightedDates.add(targetDate);
+          final combined = _combineDateAndTime(targetDate);
+          highlightedDates.add(combined);
+          _schedule(combined, listName, 100 + i);
         }
+      } else {
+        final combined = _combineDateAndTime(selectedDay);
+        highlightedDates.add(combined);
+        _schedule(combined, listName, 9999);
       }
     });
+  }
+
+  void _schedule(DateTime date, String listName, int id) {
+    final scheduledDate = tz.TZDateTime.from(date, tz.local);
+    notificationService.scheduleNotification(
+      scheduledDate: scheduledDate,
+      title: "Shopping List Reminder",
+      body: "Today is your '$listName' day!",
+      id: id,
+    );
+  }
+
+  DateTime _combineDateAndTime(DateTime date) {
+    if (selectedTime != null) {
+      return DateTime(
+        date.year,
+        date.month,
+        date.day,
+        selectedTime!.hour,
+        selectedTime!.minute,
+      );
+    } else {
+      return DateTime(date.year, date.month, date.day, 9, 0); // default
+    }
+  }
+
+  Future<void> requestNotificationPermission() async {
+    final status = await Permission.notification.status;
+    if (status.isDenied) {
+      if (await Permission.notification.request().isGranted) {
+        // Permission granted, proceed with scheduling
+        print('Notification permission granted');
+      } else {
+        // Permission denied, handle accordingly
+        print('Notification permission denied');
+      }
+    } else if (status.isGranted) {
+      // Permission already granted, proceed with scheduling
+      print('Notification permission already granted');
+    }
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ListProvider with ChangeNotifier {
-  List<Map<String, dynamic>> _lists = [];
+  final List<Map<String, dynamic>> _lists = [];
   Map<String, dynamic>? _latestList;
 
   // Get all lists
@@ -25,13 +25,13 @@ class ListProvider with ChangeNotifier {
   }
 
   // Optional: Update an existing list
-  void updateList(int index, Map<String, dynamic> updatedList) {
-    _lists[index] = updatedList;
-    if (index == _lists.length - 1) {
-      _latestList = updatedList;
-    }
+void updateList(Map<String, dynamic> oldList, Map<String, dynamic> newList) {
+  final index = _lists.indexWhere((list) => list == oldList);
+  if (index != -1) {
+    _lists[index] = newList;
     notifyListeners();
   }
+}
 
   // Optional: Remove a list
   void removeList(int index) {
@@ -49,4 +49,5 @@ class ListProvider with ChangeNotifier {
     _latestList = list;
     notifyListeners();
   }
+  
 }

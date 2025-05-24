@@ -18,16 +18,11 @@ class _MyListsState extends State<MyLists> {
   List<Map<String, dynamic>> lists = [];
   Map<String, dynamic>? latestList; 
 
-      void _addList(String name, String repeat, List<DateTime> dates) {
-        setState(() {
-          lists.add({'name': name, 'repeat': repeat, 'dates': dates});
-          latestList = {'name': name, 'repeat': repeat, 'dates': dates};
-        });
-      }
+
+  @override
   Widget build(BuildContext context) {
     final listProvider = Provider.of<ListProvider>(context);
-
-
+    
     return Scaffold(
       appBar: AppBar(
         title: Text("MY LIST"),
@@ -39,7 +34,7 @@ class _MyListsState extends State<MyLists> {
               width: 100,
               color: Colors.grey[300],
               child: GestureDetector(
-                child: Text("Add more list"),
+                child: Text("Add new list"),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -59,10 +54,48 @@ class _MyListsState extends State<MyLists> {
         itemCount: listProvider.lists.length,
         itemBuilder: (context, index) {
           var list = listProvider.lists[index];
-          return Card(
+          return Dismissible(
+  key: Key(list['name']),
+  
+  direction: DismissDirection.endToStart,
+          onDismissed: (direction) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text("Delete List"),
+                content: Text("Are you sure?"),
+                actions: [
+                  TextButton(onPressed: Navigator.of(context).pop, child: Text("Cancel")),
+                  TextButton(
+                    onPressed: () {
+
+                        listProvider.removeList(index);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("List deleted"),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      Navigator.pop(context);
+                    },
+                    child: Text("Delete"),
+                  ),
+                ],
+              ),
+            );
+          },
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            color: Colors.red,
+            child: Icon(Icons.delete, color: Colors.white),
+          ),
+          child: Card(
             margin: EdgeInsets.all(10),
             color: Colors.white,
-            child: GestureDetector(
+            child: ListTile(
+              title: Text(list['name']),
+              subtitle: Text("Repeat: ${list['repeat']}"),
               onTap: () {
                 Navigator.push(
                   context,
@@ -71,11 +104,9 @@ class _MyListsState extends State<MyLists> {
                   ),
                 );
               },
-              child: ListTile(
-                title: Text(list['name']),
-              ),
             ),
-          );
+          ),
+        );
         },
       ),
     );

@@ -1,13 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_shopsmart/list_provider.dart';
 import 'package:flutter_shopsmart/Checklist.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_shopsmart/MyLists.dart';
+import 'package:table_calendar/table_calendar.dart';
 
-class Dashboard extends StatelessWidget {
+class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
 
   @override
+  State<Dashboard> createState() => _DashboardState();
+}
+
+class _DashboardState extends State<Dashboard> {
+  List<DateTime> highlightedDates = [];
+  DateTime selectedDay = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    
+  }
+
+  void updateHighlightedDates(List<DateTime> dates) {
+    setState(() {
+      highlightedDates = dates;
+    });
+  }
+
+  // Helper to collect all highlightedDates from all lists
+  List<DateTime> _getAllHighlightedDates(List<Map<String, dynamic>> lists) {
+    return lists
+        .expand((list) => (list['highlightedDates'] as List<dynamic>? ?? []))
+        .map((d) => d is DateTime ? d : DateTime.tryParse(d.toString()))
+        .whereType<DateTime>()
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final listProvider = Provider.of<ListProvider>(context);
+    final recentLists = listProvider.lists.take(3).toList();
+
+    //inherit bruh all highlightedDates from all lists
+    final allHighlightedDates = _getAllHighlightedDates(listProvider.lists);
+
+    // Use allHighlightedDates for the calendar
     return Padding(
       padding: EdgeInsets.all(15),
       child: ListView(
@@ -44,20 +82,23 @@ class Dashboard extends StatelessWidget {
               ),
               child: TableCalendar(
                 shouldFillViewport: true,
-                focusedDay: DateTime.now(),
+                focusedDay: selectedDay,
                 firstDay: DateTime.utc(2010, 10, 16),
                 lastDay: DateTime.utc(2030, 3, 14),
                 calendarFormat: CalendarFormat.month,
                 availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-                headerStyle: HeaderStyle(formatButtonVisible: false),
-                calendarStyle: CalendarStyle(
-                  weekendTextStyle: TextStyle(color: Colors.red),
-                ),
-                availableGestures: AvailableGestures.none,
+                headerStyle: HeaderStyle(formatButtonVisible: true),
+                selectedDayPredicate: (day) => isSameDay(day, selectedDay),
+                onDaySelected: (selected, focused) {
+                  setState(() {
+                    selectedDay = selected;
+                  });
+                },
               ),
             ),
           ),
-          //Checkbox for calendar
+
+          // Checkbox for calendar
           Padding(
             padding: const EdgeInsets.only(bottom: 8, left: 8, right: 8),
             child: Container(
@@ -74,9 +115,12 @@ class Dashboard extends StatelessWidget {
                   ),
                 ],
               ),
-              child: _CalendarOptions(),
+              child: _CalendarOptions(
+                onHighlightDates: updateHighlightedDates,
+              ),
             ),
           ),
+
           // My List title
           Padding(
             padding: const EdgeInsets.all(8),
@@ -107,83 +151,60 @@ class Dashboard extends StatelessWidget {
             ),
           ),
 
-          // Example Items
-          Container(
-            child: Column(
+          // Recent Lists Section
+          if (listProvider.lists.isEmpty)
+            Center(
+              child: Text(
+                "No lists yet. Add one from 'Add more list'.",
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Container(
-                    padding: EdgeInsets.all(15),
-                    height: 50,
-                    width: 350,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    "Recent Lists",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SizedBox(height: 10),
+                ...recentLists.map((list) {
+                  return Card(
+                    margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: GestureDetector(
+                    child: ListTile(
+                      title: Text(list['name']),
+                      subtitle: Text("Repeat: ${list['repeat']}"),
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => Checklist()),
+                          MaterialPageRoute(
+                            builder: (context) => Checklist(selectedList: list),
+                          ),
                         );
                       },
-                      child: Text("Example list 1"),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Container(
-                    padding: EdgeInsets.all(15),
-                    height: 50,
-                    width: 350,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => Checklist()),
-                        );
-                      },
-                      child: Text("Example list 2"),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Container(
-                    padding: EdgeInsets.all(15),
-                    height: 50,
-                    width: 350,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => Checklist()),
-                        );
-                      },
-                      child: Text("Example List 3"),
-                    ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
-          ),
         ],
       ),
     );
   }
 }
 
+// Calendar Options Checkbox Widget
 class _CalendarOptions extends StatefulWidget {
+  final void Function(List<DateTime>) onHighlightDates;
+  const _CalendarOptions({required this.onHighlightDates});
+
   @override
   __CalendarOptionsState createState() => __CalendarOptionsState();
 }
@@ -191,6 +212,40 @@ class _CalendarOptions extends StatefulWidget {
 class __CalendarOptionsState extends State<_CalendarOptions> {
   bool weeklySelected = false;
   bool monthlySelected = false;
+  List<Map<String, dynamic>> dueLists = [];
+
+  void _filterLists(BuildContext context) {
+    final listProvider = Provider.of<ListProvider>(context, listen: false);
+    List<Map<String, dynamic>> filtered = [];
+
+    if (weeklySelected && !monthlySelected) {
+      filtered = listProvider.lists
+          .where((list) => (list['repeat'] ?? '').toLowerCase() == 'weekly')
+          .toList();
+    } else if (!weeklySelected && monthlySelected) {
+      filtered = listProvider.lists
+          .where((list) => (list['repeat'] ?? '').toLowerCase() == 'monthly')
+          .toList();
+    } else if (weeklySelected && monthlySelected) {
+      filtered = listProvider.lists
+          .where((list) =>
+              (list['repeat'] ?? '').toLowerCase() == 'weekly' ||
+              (list['repeat'] ?? '').toLowerCase() == 'monthly')
+          .toList();
+    } 
+    setState(() {
+      dueLists = filtered;
+    });
+
+    // Gather all highlightedDates from filtered lists
+    final List<DateTime> highlightDates = filtered
+        .expand((list) => (list['highlightedDates'] as List<dynamic>? ?? []))
+        .map((d) => d is DateTime ? d : DateTime.tryParse(d.toString()))
+        .whereType<DateTime>()
+        .toList();
+
+    widget.onHighlightDates(highlightDates);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,13 +255,40 @@ class __CalendarOptionsState extends State<_CalendarOptions> {
           setState(() {
             weeklySelected = !weeklySelected;
           });
+          _filterLists(context);
         }),
         SizedBox(height: 10),
         _buildOption("Monthly List", monthlySelected, () {
           setState(() {
             monthlySelected = !monthlySelected;
           });
+          _filterLists(context);
         }),
+        SizedBox(height: 20),
+        if (dueLists.isNotEmpty)
+          ...dueLists.map((list) => Card(
+                margin: EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  title: Text(list['name'] ?? ''),
+                  subtitle: Text("Repeat: ${list['repeat'] ?? ''}"),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Checklist(selectedList: list),
+                      ),
+                    );
+                  },
+                ),
+              )),
+        if (dueLists.isEmpty && (weeklySelected || monthlySelected))
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              "No lists due for this category.",
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
       ],
     );
   }
@@ -228,10 +310,9 @@ class __CalendarOptionsState extends State<_CalendarOptions> {
                 width: 2,
               ),
             ),
-            child:
-                selected
-                    ? Icon(Icons.check, size: 16, color: Colors.white)
-                    : null,
+            child: selected
+                ? Icon(Icons.check, size: 16, color: Colors.white)
+                : null,
           ),
           SizedBox(width: 10),
           Text(label, style: TextStyle(fontSize: 18)),

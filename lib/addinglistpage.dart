@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:flutter_shopsmart/list_provider.dart';
 import 'additempage.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:fluttertoast/fluttertoast.dart'; 
 
 class AddList extends StatefulWidget {
   const AddList({super.key});
@@ -14,6 +18,7 @@ class AddList extends StatefulWidget {
 class _AddListState extends State<AddList> {
   String? selectedRepeat;
   DateTime selectedDay = DateTime.now();
+  TimeOfDay? selectedTime;
   List<DateTime> highlightedDates = [];
   String listName = '';
   List<DropdownMenuItem<String>> repeat = const [
@@ -22,7 +27,57 @@ class _AddListState extends State<AddList> {
   ];
   List<Map<String, String>> currentItems = [];
 
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
   @override
+  void initState() {
+    super.initState();
+    initializeNotifications();
+  }
+
+  Future<void> initializeNotifications() async {
+    final settings = const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    );
+
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    await flutterLocalNotificationsPlugin.initialize(settings);
+
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Manila'));
+  }
+
+  Future<void> scheduleNotification(DateTime date, String listName, {int id = 0}) async {
+    final channelId = 'shopping_list_reminders';
+    final channelName = 'Shopping List Notifications';
+
+    final details = AndroidNotificationDetails(
+      channelId,
+      channelName,
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      ongoing: true,
+      autoCancel: false,
+    );
+
+    final notificationDetails = NotificationDetails(android: details);
+
+    final scheduledDate = tz.TZDateTime.from(date, tz.local);
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      id, // Use a safe integer ID
+      "Shopping List Reminder",
+      "Today is your '$listName' day!",
+      scheduledDate,
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.dateAndTime,
+
+    );
+  }
+
+  @override 
   Widget build(BuildContext context) {
     final listProvider = Provider.of<ListProvider>(context);
 
@@ -33,6 +88,15 @@ class _AddListState extends State<AddList> {
         actions: [
           TextButton(
             onPressed: () {
+              if (selectedTime == null) {
+                Fluttertoast.showToast(
+                  msg: "Time was not selected. Default set to 9:00 AM.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                  backgroundColor: Colors.black87,
+                  textColor: Colors.white,
+                );
+              }
               listProvider.addList(
                 listName,
                 selectedRepeat ?? '',
@@ -82,15 +146,18 @@ class _AddListState extends State<AddList> {
                 availableGestures: AvailableGestures.none,
                 calendarBuilders: CalendarBuilders(
                   markerBuilder: (context, date, events) {
-                    if (highlightedDates.contains(date)) {
+                    if (highlightedDates.any((d) =>
+                        d.year == date.year &&
+                        d.month == date.month &&
+                        d.day == date.day)) {
                       return Container(
                         decoration: BoxDecoration(
-                          color: Colors.blue, // Circle color
+                          color: Colors.blue,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
                           child: Text(
-                            '${date.day}', //wan ko ano to basta nilagay ko nalang
+                            '${date.day}',
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -99,6 +166,49 @@ class _AddListState extends State<AddList> {
                     return null;
                   },
                 ),
+              ),
+            ),
+          ),
+          // Time picker
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              height: 70,
+              width: 350,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    "Time: ",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: selectedTime ?? TimeOfDay.now(),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            selectedTime = picked;
+                            _highlightDates();
+                          });
+                        }
+                      },
+                      child: Text(
+                        selectedTime != null
+                            ? selectedTime!.format(context)
+                            : "Select Time",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -171,31 +281,31 @@ class _AddListState extends State<AddList> {
           // Add item button
           Padding(
             padding: const EdgeInsets.all(8),
-            child: Container(
-              padding: const EdgeInsets.all(15),
-              height: 70,
-              width: 350,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(40),
-                color: Colors.white,
-              ),
-              child: GestureDetector(
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => AddItemPage()),
-                  );
-                  if (result != null && result is List<Map<String, String>>) {
-                    setState(() {
-                      currentItems = result;
-                    });
-                  }
-                },
-                child: Center(
-                  child: Text(
-                    "Add Item",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(40),
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddItemPage()),
+                );
+                if (result != null && result is List<Map<String, String>>) {
+                  setState(() {
+                    currentItems = result;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                height: 70,
+                width: 350,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(40),
+                  color: Colors.white,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "Add Item",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -210,7 +320,10 @@ class _AddListState extends State<AddList> {
       highlightedDates.clear();
       if (selectedRepeat == "Weekly") {
         for (int i = 0; i < 12; i++) {
-          highlightedDates.add(selectedDay.add(Duration(days: i * 7)));
+          final date = selectedDay.add(Duration(days: i * 7));
+          final combined = _combineDateAndTime(date);
+          highlightedDates.add(combined);
+          scheduleNotification(combined, listName, id: i);
         }
       } else if (selectedRepeat == "Monthly") {
         for (int i = 0; i < 12; i++) {
@@ -224,13 +337,34 @@ class _AddListState extends State<AddList> {
           if (targetDate.day > lastDayOfMonth) {
             targetDate = DateTime(
               targetDate.year,
-              targetDate.month + i,
+              targetDate.month,
               lastDayOfMonth,
             );
           }
-          highlightedDates.add(targetDate);
+          final combined = _combineDateAndTime(targetDate);
+          highlightedDates.add(combined);
+          scheduleNotification(combined, listName, id: 100 + i);
         }
+      } else {
+        final combined = _combineDateAndTime(selectedDay);
+        highlightedDates.add(combined);
+        scheduleNotification(combined, listName, id: 9999);
       }
     });
+  }
+
+  DateTime _combineDateAndTime(DateTime date) {
+    if (selectedTime != null) {
+      return DateTime(
+        date.year,
+        date.month,
+        date.day,
+        selectedTime!.hour,
+        selectedTime!.minute,
+      );
+    } else {
+      // Default to 9:00 AM if no time selected
+      return DateTime(date.year, date.month, date.day, 9, 0);
+    }
   }
 }
