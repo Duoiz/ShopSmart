@@ -37,7 +37,7 @@ class _AddListState extends State<AddList> {
 
   Future<void> initializeNotifications() async {
     final settings = const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@mipmap/mijalogo'),
     );
 
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();

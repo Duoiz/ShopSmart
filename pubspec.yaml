@@ -1,5 +1,5 @@
 name: flutter_shopsmart
-description: "Not Finished yet."
+description: "Your Go to buddy when it comes to shopping. ShopSmart is a Flutter application that helps you manage your shopping lists, track expenses, and find the best deals."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -38,12 +38,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   provider: ^6.1.5
   fluttertoast: ^8.2.4
-  permission_handler: ^11.3.0 # Use the latest version
+  permission_handler: ^11.3.0 
+  sqflite: ^2.4.2
   
-flutter_icons:
-  android: true
-  ios: true
-  image_path: "C:/Users/Admin/.vscode_flutter/flutter_shopsmart/lib/util/logo.jpg"
 
 
   # The following adds the Cupertino Icons font to your application.

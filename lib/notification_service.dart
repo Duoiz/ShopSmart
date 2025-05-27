@@ -17,7 +17,7 @@ class NotificationService {
 
       // Create notification channel for Android
       const AndroidInitializationSettings initializationSettingsAndroid =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+          AndroidInitializationSettings('@mipmap/mijalogo');
 
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
         channelId,
@@ -32,57 +32,66 @@ class NotificationService {
           ?.createNotificationChannel(channel);
 
       // Initialize plugin
-      final InitializationSettings initializationSettings =
-          InitializationSettings(android: initializationSettingsAndroid);
-
-      await flutterLocalNotificationsPlugin.initialize(
-        initializationSettings,
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
       );
+
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS,
+      );
+
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings,
+          onDidReceiveNotificationResponse:
+              (NotificationResponse notificationResponse) {
+        // Handle notification tap event here
+      });
     } catch (e) {
       print('NotificationService initialize error: $e');
     }
   }
 
   Future<void> scheduleNotification({
-    required tz.TZDateTime scheduledDate,
+    required int id,
     required String title,
     required String body,
-    int id = 0,
+    required tz.TZDateTime scheduledDate,
   }) async {
+    // Check if the scheduled date is in the past
+    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
+      print("Scheduled date is in the past. Scheduling for the next minute.");
+      scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 1));
+    }
+
     try {
-      const AndroidNotificationDetails androidPlatformChannelSpecifics =
-          AndroidNotificationDetails(
-        channelId,
-        channelName,
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: true,
-        ongoing: true,
-        autoCancel: false,
-        icon: '@mipmap/ic_launcher',
-      );
-
-      const NotificationDetails platformChannelSpecifics =
-          NotificationDetails(android: androidPlatformChannelSpecifics);
-
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
         scheduledDate,
-        platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.exact,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'your_channel_id',
+            'your_channel_name',
+            channelDescription: 'your_channel_description',
+            importance: Importance.max,
+            priority: Priority.high,
+            ticker: 'ticker',
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
-      print('NotificationService scheduleNotification error: $e');
+      print("Error scheduling notification: $e");
     }
   }
 
   Future<void> cancelNotification(int id) async {
-    try {
-      await flutterLocalNotificationsPlugin.cancel(id);
-    } catch (e) {
-      print('NotificationService cancelNotification error: $e');
-    }
+    await flutterLocalNotificationsPlugin.cancel(id);
   }
 }

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_shopsmart/list_provider.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
@@ -6,9 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:flutter_shopsmart/dashboard.dart';
 import 'package:flutter_shopsmart/MyLists.dart';
 import 'package:flutter_shopsmart/checklist.dart';
+import 'package:flutter_shopsmart/notification_debugger.dart'; // Import the debugger
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key}); // Add Key? key
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -30,6 +30,9 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('ShopSmart'), // Add const
+      ),
       bottomNavigationBar: CurvedNavigationBar(
         index: _selectedIndex,
         onTap: (index) {
@@ -45,7 +48,17 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.grey.shade300,
       ),
       backgroundColor: Colors.grey[300],
-      body: pages[_selectedIndex],
+      body: Column( // Wrap the body in a Column
+        children: [
+          Expanded(child: pages[_selectedIndex]), // Use Expanded to fill available space
+          ElevatedButton( // Add the button
+            onPressed: () {
+              Navigator.pushNamed(context, '/notification_debugger');
+            },
+            child: const Text('Open Notification Debugger'), // Add const
+          ),
+        ],
+      ),
     );
   }
 }

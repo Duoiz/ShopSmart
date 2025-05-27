@@ -9,9 +9,10 @@
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
-        android:label="flutter_shopsmart"
+        android:label="Shop_Smart"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/mijalogo"
+        >
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -47,6 +48,7 @@
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
             android:enabled="true"
             android:exported="true">
+            
     <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
     </intent-filter>

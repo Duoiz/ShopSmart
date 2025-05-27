@@ -14,39 +14,48 @@ class Checklist extends StatefulWidget {
 }
 
 class _ChecklistState extends State<Checklist> {
-  late List<Map<String, String>> items;
+  late List<Map<String, dynamic>> items;
   late Map<String, bool> _checkedItems;
-  late Map<String, bool> _notcheckedItems;
   late Map<String, TextEditingController> _estPriceControllers;
   late Map<String, TextEditingController> _actualPriceControllers;
 
   @override
   void initState() {
     super.initState();
+    _initializeFromList(widget.selectedList);
+  }
 
-    // Get items from selected list or use empty list
-    items = widget.selectedList?['items'] ?? [];
+  @override
+  void didUpdateWidget(covariant Checklist oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedList != oldWidget.selectedList) {
+      _disposeControllers();
+      _initializeFromList(widget.selectedList);
+      setState(() {});
+    }
+  }
 
-    // Initialize checkbox states
+  void _initializeFromList(Map<String, dynamic>? selectedList) {
+    final dynamic itemsData = selectedList?['items'];
+    if (itemsData is List) {
+      items = List<Map<String, dynamic>>.from(itemsData);
+    } else {
+      items = [];
+    }
+
     _checkedItems = {
-      for (var item in items) item['name']!: false
+      for (var item in items) item['name']!.toString(): false
     };
 
-    _notcheckedItems = {
-      for (var item in items) item['name']!: false
-    };
-
-    // Initialize price controllers and sync with items
     _estPriceControllers = {};
     _actualPriceControllers = {};
     for (var item in items) {
-      final itemName = item['name']!;
-      // Ensure estPrice and actualPrice fields exist
+      final itemName = item['name']!.toString();
       item['estPrice'] = item['estPrice'] ?? "";
       item['actualPrice'] = item['actualPrice'] ?? "";
 
       _estPriceControllers[itemName] =
-          TextEditingController(text: item['estPrice']);
+          TextEditingController(text: item['estPrice'].toString());
       _estPriceControllers[itemName]!.addListener(() {
         item['estPrice'] = _estPriceControllers[itemName]!.text;
         final listProvider = Provider.of<ListProvider>(context, listen: false);
@@ -55,7 +64,7 @@ class _ChecklistState extends State<Checklist> {
       });
 
       _actualPriceControllers[itemName] =
-          TextEditingController(text: item['actualPrice']);
+          TextEditingController(text: item['actualPrice'].toString());
       _actualPriceControllers[itemName]!.addListener(() {
         item['actualPrice'] = _actualPriceControllers[itemName]!.text;
         final listProvider = Provider.of<ListProvider>(context, listen: false);
@@ -65,20 +74,26 @@ class _ChecklistState extends State<Checklist> {
     }
   }
 
-  @override
-  void dispose() {
+  void _disposeControllers() {
     for (var controller in _estPriceControllers.values) {
       controller.dispose();
     }
     for (var controller in _actualPriceControllers.values) {
       controller.dispose();
     }
+  }
+
+  @override
+  void dispose() {
+    _disposeControllers();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final listProvider = Provider.of<ListProvider>(context, listen: false);
+    final listProvider = Provider.of<ListProvider>(context);
+    // If you want to always use the latest list:
+    // _initializeFromList(listProvider.latestList);
 
     return WillPopScope(
       onWillPop: () async {
@@ -98,49 +113,61 @@ class _ChecklistState extends State<Checklist> {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  builder: (context) => EditListBottomSheet(items: items),
+                  builder: (context) => EditListBottomSheet(
+                    items: items
+                        .map<Map<String, String>>((item) => item.map((key, value) => MapEntry(key, value?.toString() ?? "")))
+                        .toList(),
+                  ),
                 );
               },
             ),
             IconButton(
               icon: Icon(Icons.add),
               onPressed: () async {
-                final newItem = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddItemPage()),
-                );
+                try {
+                  final newItem = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AddItemPage()),
+                  );
 
-                if (newItem != null && newItem is List<Map<String, String>>) {
-                  setState(() {
-                    for (var item in newItem) {
-                      // Ensure estPrice and actualPrice fields exist
-                      item['estPrice'] = item['estPrice'] ?? "";
-                      item['actualPrice'] = item['actualPrice'] ?? "";
-                      items.add(item);
+                  if (newItem != null && newItem is List<Map<String, String>>) {
+                    setState(() {
+                      for (var item in newItem) {
+                        // Ensure estPrice and actualPrice fields exist
+                        item['estPrice'] = item['estPrice'] ?? "";
+                        item['actualPrice'] = item['actualPrice'] ?? "";
+                        items.add(item);
 
-                      final itemName = item['name']!;
-                      _checkedItems[itemName] = false;
-                      _estPriceControllers[itemName] =
-                          TextEditingController(text: item['estPrice']);
-                      _estPriceControllers[itemName]!.addListener(() {
-                        item['estPrice'] = _estPriceControllers[itemName]!.text;
-                        final listProvider = Provider.of<ListProvider>(context, listen: false);
-                        _saveUpdatedList(listProvider);
-                        setState(() {});
-                      });
+                        final itemName = item['name']!;
+                        _checkedItems[itemName] = false;
+                        _estPriceControllers[itemName] = TextEditingController(text: item['estPrice']);
+                        _actualPriceControllers[itemName] = TextEditingController(text: item['actualPrice']);
 
-                      _actualPriceControllers[itemName] =
-                          TextEditingController(text: item['actualPrice']);
-                      _actualPriceControllers[itemName]!.addListener(() {
-                        item['actualPrice'] = _actualPriceControllers[itemName]!.text;
-                        final listProvider = Provider.of<ListProvider>(context, listen: false);
-                        _saveUpdatedList(listProvider);
-                        setState(() {});
-                      });
-                    }
-                    final listProvider = Provider.of<ListProvider>(context, listen: false);
-                    _saveUpdatedList(listProvider);
-                  });
+                        _estPriceControllers[itemName]!.addListener(() {
+                          item['estPrice'] = _estPriceControllers[itemName]!.text;
+                          final listProvider = Provider.of<ListProvider>(context, listen: false);
+                          _saveUpdatedList(listProvider);
+                          setState(() {});
+                        });
+
+                        _actualPriceControllers[itemName]!.addListener(() {
+                          item['actualPrice'] = _actualPriceControllers[itemName]!.text;
+                          final listProvider = Provider.of<ListProvider>(context, listen: false);
+                          _saveUpdatedList(listProvider);
+                          setState(() {});
+                        });
+                      }
+                      final listProvider = Provider.of<ListProvider>(context, listen: false);
+                      _saveUpdatedList(listProvider);
+                    });
+                  }
+                } catch (e) {
+                  // Display a notification to the user
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Cannot add items when no list is selected."),
+                    ),
+                  );
                 }
               },
             ),
@@ -406,13 +433,14 @@ class _ChecklistState extends State<Checklist> {
     );
   }
 
-  void _saveUpdatedList(ListProvider listProvider) {
+  void _saveUpdatedList(ListProvider listProvider) async {
     final updatedList = {
       ...widget.selectedList!,
       'items': items,
     };
 
-    listProvider.updateList(widget.selectedList!, updatedList);
+    await listProvider.updateList(widget.selectedList!, updatedList);
+    await listProvider.loadLists(); // <-- Add this line to refresh in-memory lists
   }
 
   Widget _buildCategorySummary() {
@@ -491,7 +519,8 @@ class _ChecklistState extends State<Checklist> {
     for (var item in items) {
       final itemName = item['name']!;
       try {
-        final estPrice = double.parse(_estPriceControllers[itemName]?.text ?? "0.00");
+        final estPriceText = _estPriceControllers[itemName]?.text ?? "0.00";
+        final estPrice = double.tryParse(estPriceText) ?? 0.0; // Use tryParse and provide a default value
         estTotal += estPrice;
       } catch (e) {
         print("Error parsing estimated price for $itemName: $e");
@@ -505,7 +534,8 @@ class _ChecklistState extends State<Checklist> {
       final isChecked = _checkedItems[itemName] ?? false;
       if (isChecked) {
         try {
-          final actualPrice = double.parse(_actualPriceControllers[itemName]?.text ?? "0.00");
+          final actualPriceText = _actualPriceControllers[itemName]?.text ?? "0.00";
+          final actualPrice = double.tryParse(actualPriceText) ?? 0.0; // Use tryParse and provide a default value
           actualTotal += actualPrice;
         } catch (e) {
           print("Error parsing actual price for $itemName: $e");
