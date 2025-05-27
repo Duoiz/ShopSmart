@@ -60,7 +60,7 @@ class _DashboardState extends State<Dashboard> {
             // Calendar Title
             Padding(
               padding: const EdgeInsets.all(8),
-              child: Container(
+              child: SizedBox(
                 height: 30,
                 width: 500,
                 child: Text("CALENDAR", style: TextStyle(fontSize: 28)),
@@ -132,7 +132,7 @@ class _DashboardState extends State<Dashboard> {
               padding: const EdgeInsets.all(8),
               child: Row(
                 children: [
-                  Container(
+                  SizedBox(
                     height: 30,
                     width: 290,
                     child: Text(

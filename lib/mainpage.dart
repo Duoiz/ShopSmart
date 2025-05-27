@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_shopsmart/dashboard.dart';
 import 'package:flutter_shopsmart/MyLists.dart';
 import 'package:flutter_shopsmart/checklist.dart';
-import 'package:flutter_shopsmart/notification_debugger.dart'; // Import the debugger
+// Import the debugger
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key}); // Add Key? key

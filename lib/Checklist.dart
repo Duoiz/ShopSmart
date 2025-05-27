@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_shopsmart/list_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_shopsmart/edit_list_bottomsheet.dart';
 import 'package:flutter_shopsmart/additempage.dart';
+import 'package:flutter_shopsmart/edit_list_bottomsheet.dart';
 
 class Checklist extends StatefulWidget {
   final Map<String, dynamic>? selectedList;
 
-  const Checklist({super.key, this.selectedList});
+  const Checklist({Key? key, this.selectedList}) : super(key: key);
 
   @override
-  State<Checklist> createState() => _ChecklistState();
+  _ChecklistState createState() => _ChecklistState();
 }
 
 class _ChecklistState extends State<Checklist> {
-  late List<Map<String, dynamic>> items;
-  late Map<String, bool> _checkedItems;
-  late Map<String, TextEditingController> _estPriceControllers;
-  late Map<String, TextEditingController> _actualPriceControllers;
+  List<Map<String, dynamic>> items = [];
+  Map<String, bool> _checkedItems = {};
+  Map<String, TextEditingController> _estPriceControllers = {};
+  Map<String, TextEditingController> _actualPriceControllers = {};
 
   @override
   void initState() {
@@ -49,29 +49,33 @@ class _ChecklistState extends State<Checklist> {
 
     _estPriceControllers = {};
     _actualPriceControllers = {};
+
     for (var item in items) {
       final itemName = item['name']!.toString();
-      item['estPrice'] = item['estPrice'] ?? "";
-      item['actualPrice'] = item['actualPrice'] ?? "";
 
-      _estPriceControllers[itemName] =
-          TextEditingController(text: item['estPrice'].toString());
+      // Initialize controllers safely
+      _estPriceControllers[itemName] = TextEditingController(text: item['estPrice']?.toString() ?? "0.00");
+      _actualPriceControllers[itemName] = TextEditingController(text: item['actualPrice']?.toString() ?? "0.00");
+
+      // Add listeners to save changes in real-time
       _estPriceControllers[itemName]!.addListener(() {
-        item['estPrice'] = _estPriceControllers[itemName]!.text;
-        final listProvider = Provider.of<ListProvider>(context, listen: false);
-        _saveUpdatedList(listProvider);
-        setState(() {});
+        _updateItemPrice(itemName, 'estPrice', _estPriceControllers[itemName]!.text);
       });
 
-      _actualPriceControllers[itemName] =
-          TextEditingController(text: item['actualPrice'].toString());
       _actualPriceControllers[itemName]!.addListener(() {
-        item['actualPrice'] = _actualPriceControllers[itemName]!.text;
-        final listProvider = Provider.of<ListProvider>(context, listen: false);
-        _saveUpdatedList(listProvider);
-        setState(() {});
+        _updateItemPrice(itemName, 'actualPrice', _actualPriceControllers[itemName]!.text);
       });
     }
+  }
+
+  void _updateItemPrice(String itemName, String priceType, String newValue) {
+    setState(() {
+      final itemIndex = items.indexWhere((item) => item['name'] == itemName);
+      if (itemIndex != -1) {
+        items[itemIndex][priceType] = newValue;
+      }
+    });
+    _saveUpdatedList(context.read<ListProvider>());
   }
 
   void _disposeControllers() {
@@ -89,16 +93,58 @@ class _ChecklistState extends State<Checklist> {
     super.dispose();
   }
 
+  void _saveUpdatedList(ListProvider listProvider) async {
+    final updatedList = {
+      ...widget.selectedList!,
+      'items': items,
+    };
+    await listProvider.updateList(widget.selectedList!, updatedList);
+  }
+
+  void _showEditItemDialog(BuildContext context, String itemName) {
+    final item = items.firstWhere((i) => i['name'] == itemName);
+
+    final nameController = TextEditingController(text: item['name']);
+    final qtyController = TextEditingController(text: item['qty']);
+    final categoryController = TextEditingController(text: item['category']);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Edit Item"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: InputDecoration(hintText: "Item Name")),
+            SizedBox(height: 10),
+            TextField(controller: qtyController, decoration: InputDecoration(hintText: "Quantity/KG")),
+            SizedBox(height: 10),
+            TextField(controller: categoryController, decoration: InputDecoration(hintText: "Category")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: Navigator.of(context).pop, child: Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                item['name'] = nameController.text;
+                item['qty'] = qtyController.text;
+                item['category'] = categoryController.text;
+              });
+              Navigator.pop(context);
+            },
+            child: Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final listProvider = Provider.of<ListProvider>(context);
-    // If you want to always use the latest list:
-    // _initializeFromList(listProvider.latestList);
-
     return WillPopScope(
       onWillPop: () async {
-        // Save updated list before navigating back
-        _saveUpdatedList(listProvider);
+        _saveUpdatedList(context.read<ListProvider>());
         return true;
       },
       child: Scaffold(
@@ -113,68 +159,46 @@ class _ChecklistState extends State<Checklist> {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
-                  builder: (context) => EditListBottomSheet(
-                    items: items
-                        .map<Map<String, String>>((item) => item.map((key, value) => MapEntry(key, value?.toString() ?? "")))
-                        .toList(),
-                  ),
+                  builder: (context) => EditListBottomSheet(items: items.map((item) => item.cast<String, String>()).toList()),
                 );
               },
             ),
             IconButton(
               icon: Icon(Icons.add),
               onPressed: () async {
-                try {
-                  final newItem = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => AddItemPage()),
-                  );
+                final newItem = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddItemPage()),
+                );
+                if (newItem != null && newItem is List<Map<String, String>>) {
+                  // Create a copy of the existing items
+                  List<Map<String, dynamic>> updatedItems = List.from(items);
 
-                  if (newItem != null && newItem is List<Map<String, String>>) {
-                    setState(() {
-                      for (var item in newItem) {
-                        // Ensure estPrice and actualPrice fields exist
-                        item['estPrice'] = item['estPrice'] ?? "";
-                        item['actualPrice'] = item['actualPrice'] ?? "";
-                        items.add(item);
+                  // Add the new items to the updated list
+                  for (var item in newItem) {
+                    // Ensure 'estPrice' and 'actualPrice' are initialized
+                    item['estPrice'] = item['estPrice'] ?? "0.00";
+                    item['actualPrice'] = item['actualPrice'] ?? "";
 
-                        final itemName = item['name']!;
-                        _checkedItems[itemName] = false;
-                        _estPriceControllers[itemName] = TextEditingController(text: item['estPrice']);
-                        _actualPriceControllers[itemName] = TextEditingController(text: item['actualPrice']);
-
-                        _estPriceControllers[itemName]!.addListener(() {
-                          item['estPrice'] = _estPriceControllers[itemName]!.text;
-                          final listProvider = Provider.of<ListProvider>(context, listen: false);
-                          _saveUpdatedList(listProvider);
-                          setState(() {});
-                        });
-
-                        _actualPriceControllers[itemName]!.addListener(() {
-                          item['actualPrice'] = _actualPriceControllers[itemName]!.text;
-                          final listProvider = Provider.of<ListProvider>(context, listen: false);
-                          _saveUpdatedList(listProvider);
-                          setState(() {});
-                        });
-                      }
-                      final listProvider = Provider.of<ListProvider>(context, listen: false);
-                      _saveUpdatedList(listProvider);
-                    });
+                    updatedItems.add(item);
                   }
-                } catch (e) {
-                  // Display a notification to the user
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Cannot add items when no list is selected."),
-                    ),
-                  );
+
+                  // Update the state with the new items
+                  setState(() {
+                    items = updatedItems;
+                  });
+
+                  // Save the updated list to the ListProvider
+                  _saveUpdatedList(context.read<ListProvider>());
+
+                  // Update the latest list in ListProvider
+                  context.read<ListProvider>().loadLists();
                 }
               },
             ),
           ],
         ),
         body: Column(
-          
           children: [
             _buildHeaderRow(),
             Expanded(
@@ -187,12 +211,8 @@ class _ChecklistState extends State<Checklist> {
                         final itemName = item['name']!;
                         final qty = item['qty'] ?? "1";
                         final category = item['category'] ?? "Uncategorized";
-                        // Wrap the row with GestureDetector to handle taps
-                        return GestureDetector(
-                          onTap: () =>
-                              _showEditItemDialog(context, itemName),
-                          child: _buildChecklistRow(itemName, qty, category),
-                        );
+
+                        return _buildChecklistRow(itemName, qty, category);
                       },
                     ),
             ),
@@ -211,7 +231,6 @@ class _ChecklistState extends State<Checklist> {
       child: Row(
         children: [
           Container(
-
             padding: EdgeInsets.all(8),
             height: 35,
             width: 160,
@@ -253,96 +272,74 @@ class _ChecklistState extends State<Checklist> {
     return Dismissible(
       key: Key(itemName),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) async {
-        // Show confirmation dialog before deleting
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Delete Item'),
-            content: Text('Are you sure you want to delete "$itemName"?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text('Delete', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ) ?? false;
-      },
-      onDismissed: (direction) {
-        setState(() {
-          items.removeWhere((item) => item['name'] == itemName);
-          _checkedItems.remove(itemName);
-          _estPriceControllers.remove(itemName)?.dispose();
-          _actualPriceControllers.remove(itemName)?.dispose();
-        });
-      },
       background: Container(
         alignment: Alignment.centerRight,
         padding: EdgeInsets.symmetric(horizontal: 16),
         color: Colors.red,
         child: Icon(Icons.delete, color: Colors.white),
       ),
-      child: Row(
-        children: [
-          Container(
-            height: 50,
-            width: 160,
-            color: const Color(0xFFF8F4EB),
-            child: CheckboxListTile(
-              title: _buildCheckboxLabel(itemName, isChecked),
-              value: isChecked,
-              onChanged: (bool? newValue) {
-                setState(() {
-                  _checkedItems[itemName] = newValue ?? false;
-                });
-              },
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.only(top: 10, left: 20),
-            height: 35,
-            width: 65,
-            color: const Color(0xFFF8F4EB),
-            child: Text(qty),
-          ),
-          Container(
-            height: 35,
-            width: 65,
-            padding: EdgeInsets.symmetric(horizontal: 2),
-            child: TextField(
-              controller: _estPriceControllers[itemName],
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      onDismissed: (_) {
+        setState(() {
+          items.removeWhere((item) => item['name'] == itemName);
+        });
+      },
+      child: GestureDetector(
+        onTap: () => _showEditItemDialog(context, itemName),
+        child: Row(
+          children: [
+            Container(
+              height: 50,
+              width: 160,
+              color: const Color(0xFFF8F4EB),
+              child: CheckboxListTile(
+                title: _buildCheckboxLabel(itemName, isChecked),
+                value: isChecked,
+                onChanged: (bool? newValue) {
+                  setState(() {
+                    _checkedItems[itemName] = newValue ?? false;
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
               ),
-              style: TextStyle(fontSize: 12),
             ),
-          ),
-          Container(
-            height: 35,
-            width: 65,
-            padding: EdgeInsets.symmetric(horizontal: 2),
-            child: TextField(
-              controller: _actualPriceControllers[itemName],
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            Container(
+              padding: EdgeInsets.only(top: 10, left: 20),
+              height: 35,
+              width: 65,
+              color: const Color(0xFFF8F4EB),
+              child: Text(qty),
+            ),
+            Container(
+              height: 35,
+              width: 65,
+              padding: EdgeInsets.symmetric(horizontal: 2),
+              child: TextField(
+                controller: _estPriceControllers[itemName],
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                ),
+                style: TextStyle(fontSize: 12),
               ),
-              style: TextStyle(fontSize: 12),
             ),
-          ),
-        ],
+            Container(
+              height: 35,
+              width: 65,
+              padding: EdgeInsets.symmetric(horizontal: 2),
+              child: TextField(
+                controller: _actualPriceControllers[itemName],
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                ),
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -386,86 +383,13 @@ class _ChecklistState extends State<Checklist> {
         : label;
   }
 
-  void _showEditItemDialog(BuildContext context, String itemName) {
-    final item = items.firstWhere((i) => i['name'] == itemName);
-    final nameController = TextEditingController(text: item['name']);
-    final qtyController = TextEditingController(text: item['qty']);
-    final categoryController = TextEditingController(text: item['category']);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Edit Item"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameController, decoration: InputDecoration(hintText: "Item Name")),
-            SizedBox(height: 10),
-            TextField(controller: qtyController, decoration: InputDecoration(hintText: "Quantity/KG")),
-            SizedBox(height: 10),
-            TextField(controller: categoryController, decoration: InputDecoration(hintText: "Category")),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: Navigator.of(context).pop,
-            child: Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                item['name'] = nameController.text;
-                item['qty'] = qtyController.text;
-                item['category'] = categoryController.text;
-                // Optionally update controllers if name changed
-                if (item['name'] != itemName) {
-                  _estPriceControllers[item['name']!] = _estPriceControllers.remove(itemName)!;
-                  _actualPriceControllers[item['name']!] = _actualPriceControllers.remove(itemName)!;
-                  _checkedItems[item['name']!] = _checkedItems.remove(itemName)!;
-                }
-                final listProvider = Provider.of<ListProvider>(context, listen: false);
-                _saveUpdatedList(listProvider);
-              });
-              Navigator.pop(context);
-            },
-            child: Text("Save"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _saveUpdatedList(ListProvider listProvider) async {
-    final updatedList = {
-      ...widget.selectedList!,
-      'items': items,
-    };
-
-    await listProvider.updateList(widget.selectedList!, updatedList);
-    await listProvider.loadLists();
-
-    // Get the latest version of this list from the provider
-    final latest = listProvider.lists.firstWhere(
-      (l) => l['id'] == widget.selectedList!['id'],
-      orElse: () => updatedList,
-    );
-    setState(() {
-      items = List<Map<String, dynamic>>.from(latest['items']);
-    });
-  }
-
   Widget _buildCategorySummary() {
     Map<String, Map<String, double>> categoryTotals = {};
 
-    // Initialize totals for each category
     for (var item in items) {
       final itemName = item['name']!;
       final category = item['category'] ?? "Uncategorized";
       final isChecked = _checkedItems[itemName] ?? false;
-      double estTotal = 0.0;
-
-      final estPrice = double.tryParse(_estPriceControllers[itemName]?.text ?? "0.00") ?? 0.0;
-      estTotal += estPrice;
 
       if (isChecked) {
         final estPrice = double.tryParse(_estPriceControllers[itemName]?.text ?? "0.00") ?? 0.0;
@@ -474,8 +398,9 @@ class _ChecklistState extends State<Checklist> {
         if (!categoryTotals.containsKey(category)) {
           categoryTotals[category] = {'est': 0.0, 'actual': 0.0};
         }
-        categoryTotals[category]!['est'] = categoryTotals[category]!['est']! + estPrice;
-        categoryTotals[category]!['actual'] = categoryTotals[category]!['actual']! + actualPrice;
+
+        categoryTotals[category]!['est'] = (categoryTotals[category]!['est'] ?? 0.0) + estPrice;
+        categoryTotals[category]!['actual'] = (categoryTotals[category]!['actual'] ?? 0.0) + actualPrice;
       }
     }
 
@@ -521,37 +446,22 @@ class _ChecklistState extends State<Checklist> {
 
   Widget _buildBottomSummaryBar() {
     int checkedCount = _checkedItems.values.where((v) => v).length;
-    int totalCount = _checkedItems.length;
+    int totalCount = items.length;
 
     double estTotal = 0.0;
     double actualTotal = 0.0;
 
-    // Compute Est Total (always includes all items)
     for (var item in items) {
       final itemName = item['name']!;
-      try {
-        final estPriceText = _estPriceControllers[itemName]?.text ?? "0.00";
-        final estPrice = double.tryParse(estPriceText) ?? 0.0; // Use tryParse and provide a default value
-        estTotal += estPrice;
-      } catch (e) {
-        print("Error parsing estimated price for $itemName: $e");
-        estTotal += 0.0; // Default to 0.0 on error
-      }
-    }
-
-    // Compute Actual Total (only for checked items)
-    for (var item in items) {
-      final itemName = item['name']!;
+      final category = item['category'] ?? "Uncategorized";
       final isChecked = _checkedItems[itemName] ?? false;
+
+      final estPrice = double.tryParse(_estPriceControllers[itemName]?.text ?? "0.00") ?? 0.0;
+      final actualPrice = double.tryParse(_actualPriceControllers[itemName]?.text ?? "0.00") ?? 0.0;
+
+      estTotal += estPrice;
       if (isChecked) {
-        try {
-          final actualPriceText = _actualPriceControllers[itemName]?.text ?? "0.00";
-          final actualPrice = double.tryParse(actualPriceText) ?? 0.0; // Use tryParse and provide a default value
-          actualTotal += actualPrice;
-        } catch (e) {
-          print("Error parsing actual price for $itemName: $e");
-          actualTotal += 0.0; // Default to 0.0 on error
-        }
+        actualTotal += actualPrice;
       }
     }
 
