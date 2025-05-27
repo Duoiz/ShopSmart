@@ -47,7 +47,7 @@ class ListProvider with ChangeNotifier {
     };
     final id = await DBHelper().insertList(newList);
 
-    // Prepare a decoded version for in-memory use
+    //a decoded version forda diretso naA
     final newListDecoded = Map<String, dynamic>.from(newList);
     newListDecoded['id'] = id;
     newListDecoded['dates'] = List<String>.from(jsonDecode(newList['dates'] as String)).map((e) => DateTime.parse(e)).toList();

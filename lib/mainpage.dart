@@ -30,8 +30,9 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F4EB),
       appBar: AppBar(
-        title: const Text('ShopSmart'), // Add const
+      backgroundColor: const Color.fromARGB(255, 63, 73, 77),
       ),
       bottomNavigationBar: CurvedNavigationBar(
         index: _selectedIndex,
@@ -45,10 +46,10 @@ class _HomePageState extends State<HomePage> {
           Icon(Icons.dashboard),
           Icon(Icons.checklist),
         ],
-        backgroundColor: Colors.grey.shade300,
+      backgroundColor: const Color(0xFFF8F4EB),
       ),
-      backgroundColor: Colors.grey[300],
       body: Column( // Wrap the body in a Column
+      
         children: [
           Expanded(child: pages[_selectedIndex]), // Use Expanded to fill available space
           ElevatedButton( // Add the button
@@ -58,7 +59,9 @@ class _HomePageState extends State<HomePage> {
             child: const Text('Open Notification Debugger'), // Add const
           ),
         ],
+        
       ),
     );
   }
+
 }

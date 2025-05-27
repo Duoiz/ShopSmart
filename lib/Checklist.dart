@@ -102,10 +102,10 @@ class _ChecklistState extends State<Checklist> {
         return true;
       },
       child: Scaffold(
-        backgroundColor: Colors.grey.shade300,
+        backgroundColor: const Color(0xFFF8F4EB),
         appBar: AppBar(
           title: Text("Checklist", style: TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.grey.shade300,
+          backgroundColor: const Color(0xFFF8F4EB),
           actions: [
             IconButton(
               icon: Icon(Icons.edit),
@@ -174,6 +174,7 @@ class _ChecklistState extends State<Checklist> {
           ],
         ),
         body: Column(
+          
           children: [
             _buildHeaderRow(),
             Expanded(
@@ -210,10 +211,11 @@ class _ChecklistState extends State<Checklist> {
       child: Row(
         children: [
           Container(
+
             padding: EdgeInsets.all(8),
             height: 35,
             width: 160,
-            color: Colors.grey[300],
+            color: const Color(0xFFF8F4EB),
             child: Text(
               "Item",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
@@ -223,21 +225,21 @@ class _ChecklistState extends State<Checklist> {
             padding: EdgeInsets.all(8),
             height: 35,
             width: 65,
-            color: Colors.grey[300],
+            color: const Color(0xFFF8F4EB),
             child: Text("QTY/KG", style: TextStyle(fontSize: 12)),
           ),
           Container(
             alignment: Alignment.center,
             height: 35,
             width: 65,
-            color: Colors.grey[300],
+            color: const Color(0xFFF8F4EB),
             child: Text("EST. PRICE", style: TextStyle(fontSize: 11)),
           ),
           Container(
             alignment: Alignment.center,
             height: 35,
             width: 65,
-            color: Colors.grey[300],
+            color: const Color(0xFFF8F4EB),
             child: Text("ACTUAL", style: TextStyle(fontSize: 11)),
           ),
         ],
@@ -290,7 +292,7 @@ class _ChecklistState extends State<Checklist> {
           Container(
             height: 50,
             width: 160,
-            color: Colors.grey[300],
+            color: const Color(0xFFF8F4EB),
             child: CheckboxListTile(
               title: _buildCheckboxLabel(itemName, isChecked),
               value: isChecked,
@@ -307,7 +309,7 @@ class _ChecklistState extends State<Checklist> {
             padding: EdgeInsets.only(top: 10, left: 20),
             height: 35,
             width: 65,
-            color: Colors.grey[300],
+            color: const Color(0xFFF8F4EB),
             child: Text(qty),
           ),
           Container(
@@ -440,7 +442,16 @@ class _ChecklistState extends State<Checklist> {
     };
 
     await listProvider.updateList(widget.selectedList!, updatedList);
-    await listProvider.loadLists(); // <-- Add this line to refresh in-memory lists
+    await listProvider.loadLists();
+
+    // Get the latest version of this list from the provider
+    final latest = listProvider.lists.firstWhere(
+      (l) => l['id'] == widget.selectedList!['id'],
+      orElse: () => updatedList,
+    );
+    setState(() {
+      items = List<Map<String, dynamic>>.from(latest['items']);
+    });
   }
 
   Widget _buildCategorySummary() {

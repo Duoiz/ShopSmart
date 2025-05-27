@@ -23,13 +23,14 @@ class _MyListsState extends State<MyLists> {
     return Scaffold(
       appBar: AppBar(
         title: Text("MY LIST"),
+              backgroundColor: const Color(0xFFF8F4EB),
         actions: [
           Padding(
             padding: EdgeInsets.all(8),
             child: Container(
               height: 20,
               width: 100,
-              color: Colors.grey[300],
+              color: const Color(0xFFF8F4EB),
               child: GestureDetector(
                 child: Text("Add new list"),
                 onTap: () {
@@ -44,9 +45,8 @@ class _MyListsState extends State<MyLists> {
             ),
           ),
         ],
-        backgroundColor: Colors.grey.shade300,
       ),
-      backgroundColor: Colors.grey.shade300,
+      backgroundColor: const Color(0xFFF8F4EB),
       body: ListView.builder(
         itemCount: listProvider.lists.length,
         itemBuilder: (context, index) {
