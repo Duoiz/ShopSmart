@@ -135,7 +135,6 @@ class _NotificationDebuggerState extends State<NotificationDebugger> {
                     );
                   } catch (e) {
                     print('Error scheduling notification: $e');
-                    // Display an error message to the user or log the error to a file.
                   }
                 },
                 child: const Text('Schedule Notification'),

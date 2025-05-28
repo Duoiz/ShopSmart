@@ -1,6 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:rxdart/rxdart.dart'; // Import rxdart
+import 'package:flutter/material.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -8,6 +10,10 @@ class NotificationService {
 
   static const channelId = 'shopping_list_reminders';
   static const channelName = 'Shopping List Notifications';
+
+  // Add a BehaviorSubject to handle notification actions
+  final BehaviorSubject<String?> selectNotificationSubject =
+      BehaviorSubject<String?>();
 
   Future<void> initialize() async {
     try {
@@ -22,14 +28,30 @@ class NotificationService {
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
         channelId,
         channelName,
+        description: 'Channel for shopping list reminders',
         importance: Importance.max,
         enableVibration: true,
+        playSound: true,
       );
 
       await flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
+
+      // Define action buttons for Android
+      final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'snooze',
+          'Snooze',
+          titleColor: Colors.blue,
+        ),
+        const AndroidNotificationAction(
+          'stop',
+          'Stop',
+          titleColor: Colors.grey,
+        ),
+      ];
 
       // Initialize plugin
       const DarwinInitializationSettings initializationSettingsIOS =
@@ -49,6 +71,7 @@ class NotificationService {
           onDidReceiveNotificationResponse:
               (NotificationResponse notificationResponse) {
         // Handle notification tap event here
+        selectNotificationSubject.add(notificationResponse.payload);
       });
     } catch (e) {
       print('NotificationService initialize error: $e');
@@ -68,22 +91,29 @@ class NotificationService {
     }
 
     try {
+      const AndroidNotificationDetails androidNotificationDetails =
+          AndroidNotificationDetails(
+        'your_channel_id',
+        'your_channel_name',
+        channelDescription: 'your_channel_description',
+        importance: Importance.max,
+        priority: Priority.high,
+        ticker: 'ticker',
+        actions: <AndroidNotificationAction>[
+          AndroidNotificationAction('snooze', 'Snooze',
+              titleColor: Colors.blue, inputs: []),
+          AndroidNotificationAction('stop', 'Stop',
+              titleColor: Colors.grey, inputs: []),
+        ],
+      );
+      const NotificationDetails platformChannelSpecifics =
+          NotificationDetails(android: androidNotificationDetails);
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
         scheduledDate,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'your_channel_id',
-            'your_channel_name',
-            channelDescription: 'your_channel_description',
-            importance: Importance.max,
-            priority: Priority.high,
-            ticker: 'ticker',
-          ),
-          iOS: DarwinNotificationDetails(),
-        ),
+        platformChannelSpecifics,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {

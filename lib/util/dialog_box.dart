@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
 class DialogBox extends StatelessWidget {
   final Function(String name, String qty, String category) onSave;
 
@@ -14,25 +16,25 @@ class DialogBox extends StatelessWidget {
     String? selectedCategory;
 
     List<DropdownMenuItem<String>> categories = const [
-DropdownMenuItem(value: "Baby Products", child: Text("Baby Products")),
-DropdownMenuItem(value: "Bakery", child: Text("Bakery")),
-DropdownMenuItem(value: "Beverage", child: Text("Beverage")),
-DropdownMenuItem(value: "Canned Goods", child: Text("Canned Goods")),
-DropdownMenuItem(value: "Cleaning Supplies", child: Text("Cleaning Supplies")),
-DropdownMenuItem(value: "Dairy", child: Text("Dairy")),
-DropdownMenuItem(value: "Frozen Food", child: Text("Frozen Food")),
-DropdownMenuItem(value: "Fruit", child: Text("Fruit")),
-DropdownMenuItem(value: "Grains & Pasta", child: Text("Grains & Pasta")),
-DropdownMenuItem(value: "Household", child: Text("Household")),
-DropdownMenuItem(value: "Meat", child: Text("Meat")),
-DropdownMenuItem(value: "Personal Care", child: Text("Personal Care")),
-DropdownMenuItem(value: "Pet Supplies", child: Text("Pet Supplies")),
-DropdownMenuItem(value: "Pharmacy", child: Text("Pharmacy")),
-DropdownMenuItem(value: "Seafood", child: Text("Seafood")),
-DropdownMenuItem(value: "Snack", child: Text("Snack")),
-DropdownMenuItem(value: "Spices", child: Text("Spices")),
-DropdownMenuItem(value: "Vegetable", child: Text("Vegetable")),
-DropdownMenuItem(value: "Others", child: Text("Others")),
+      DropdownMenuItem(value: "Baby Products", child: Text("Baby Products")),
+      DropdownMenuItem(value: "Bakery", child: Text("Bakery")),
+      DropdownMenuItem(value: "Beverage", child: Text("Beverage")),
+      DropdownMenuItem(value: "Canned Goods", child: Text("Canned Goods")),
+      DropdownMenuItem(value: "Cleaning Supplies", child: Text("Cleaning Supplies")),
+      DropdownMenuItem(value: "Dairy", child: Text("Dairy")),
+      DropdownMenuItem(value: "Frozen Food", child: Text("Frozen Food")),
+      DropdownMenuItem(value: "Fruit", child: Text("Fruit")),
+      DropdownMenuItem(value: "Grains & Pasta", child: Text("Grains & Pasta")),
+      DropdownMenuItem(value: "Household", child: Text("Household")),
+      DropdownMenuItem(value: "Meat", child: Text("Meat")),
+      DropdownMenuItem(value: "Personal Care", child: Text("Personal Care")),
+      DropdownMenuItem(value: "Pet Supplies", child: Text("Pet Supplies")),
+      DropdownMenuItem(value: "Pharmacy", child: Text("Pharmacy")),
+      DropdownMenuItem(value: "Seafood", child: Text("Seafood")),
+      DropdownMenuItem(value: "Snack", child: Text("Snack")),
+      DropdownMenuItem(value: "Spices", child: Text("Spices")),
+      DropdownMenuItem(value: "Vegetable", child: Text("Vegetable")),
+      DropdownMenuItem(value: "Others", child: Text("Others")),
     ];
 
     return AlertDialog(
@@ -83,30 +85,26 @@ DropdownMenuItem(value: "Others", child: Text("Others")),
 
                     // Validation
                     if (name.isEmpty || qty.isEmpty || category.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("All fields are required!"),
+                      Fluttertoast.showToast(
+                        msg: "All fields are required!",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
                         backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                    return;
-                  }
+                        textColor: Colors.white,
+                      );
+                      return;
+                    }
 
-                  if (!RegExp(r'^\d+$').hasMatch(qty)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Quantity must be a number!"),
+                    if (!RegExp(r'^[0-9]+$').hasMatch(qty)) {
+                      Fluttertoast.showToast(
+                        msg: "Quantity must be a number!",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
                         backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                    return;
-                  }
+                        textColor: Colors.white,
+                      );
+                      return;
+                    }
 
                     onSave(name, qty, category);
                     Navigator.pop(context); // Close dialog

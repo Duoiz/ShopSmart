@@ -88,6 +88,50 @@ class _AddListState extends State<AddList> {
         actions: [
           TextButton(
             onPressed: () {
+              // Validate selected day
+              if(selectedDay != null) {
+                Fluttertoast.showToast(
+                  msg: "The date was not selected. Default set to today.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                  backgroundColor: Colors.black87,
+                  textColor: Colors.white,
+                );
+              }
+              // Validate list name
+              if (listName.trim().isEmpty) {
+                Fluttertoast.showToast(
+                  msg: "Please enter a list name.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                  backgroundColor: Colors.black87,
+                  textColor: Colors.white,
+                );
+                return;
+              }
+              // Validate repeat option
+              if ((selectedRepeat ?? '').isEmpty) {
+                Fluttertoast.showToast(
+                  msg: "Please select a repeat option.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                  backgroundColor: Colors.black87,
+                  textColor: Colors.white,
+                );
+                return;
+              }
+              // Validate at least one item
+              if (currentItems.isEmpty) {
+                Fluttertoast.showToast(
+                  msg: "Please add at least one item.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                  backgroundColor: Colors.black87,
+                  textColor: Colors.white,
+                );
+                return;
+              }
+              // Info for time (not required)
               if (selectedTime == null) {
                 Fluttertoast.showToast(
                   msg: "Time was not selected. Default set to 9:00 AM.",
@@ -97,6 +141,7 @@ class _AddListState extends State<AddList> {
                   textColor: Colors.white,
                 );
               }
+              // All validations passed, add to list
               listProvider.addList(
                 listName,
                 selectedRepeat ?? '',

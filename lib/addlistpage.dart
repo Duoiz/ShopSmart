@@ -47,14 +47,44 @@ class _AddListState extends State<AddList> {
         actions: [
           TextButton(
             onPressed: () {
-              if (selectedTime == null) {
+              // Validate list name
+              if (listName.trim().isEmpty) {
                 Fluttertoast.showToast(
-                  msg: "Time was not selected. Default set to 9:00 AM.",
+                  msg: "Please enter a list name.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                );
+                return; // Stop further execution
+              }
+              // Validate repeat option
+              else if ((selectedRepeat ?? '').isEmpty) {
+                Fluttertoast.showToast(
+                  msg: "Please select a repeat option.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                );
+                return; // Stop further execution
+              }
+              // Validate at least one item
+              else if (currentItems.isEmpty) {
+                Fluttertoast.showToast(
+                  msg: "Please add at least one item.",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                );
+                return; // Stop further execution
+              }
+
+              // Info for time (not required)
+              else if (selectedTime == null) {
+                Fluttertoast.showToast(
+                  msg: "Time not selected. Default set to 9:00 AM.",
                   toastLength: Toast.LENGTH_SHORT,
                   gravity: ToastGravity.BOTTOM,
                 );
               }
 
+              // All validations passed, add to list
               listProvider.addList(
                 listName,
                 selectedRepeat ?? '',

@@ -48,18 +48,17 @@ class _HomePageState extends State<HomePage> {
         ],
       backgroundColor: const Color(0xFFF8F4EB),
       ),
-      body: Column( // Wrap the body in a Column
-      
+      body: Column(
         children: [
-          Expanded(child: pages[_selectedIndex]), // Use Expanded to fill available space
-          ElevatedButton( // Add the button
-            onPressed: () {
-              Navigator.pushNamed(context, '/notification_debugger');
-            },
-            child: const Text('Open Notification Debugger'), // Add const
-          ),
+          Expanded(child: pages[_selectedIndex]),
+          // Remove the Notification Debugger button
+          // ElevatedButton(
+          //   onPressed: () {
+          //     Navigator.pushNamed(context, '/notification_debugger');
+          //   },
+          //   child: const Text('Open Notification Debugger'),
+          // ),
         ],
-        
       ),
     );
   }

@@ -40,7 +40,8 @@ dependencies:
   fluttertoast: ^8.2.4
   permission_handler: ^11.3.0 
   sqflite: ^2.4.2
-  
+  rxdart: ^0.28.0
+  video_player: ^2.8.2
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -99,3 +100,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  assets:
+    - assets/Shop_smart_opening.mp4

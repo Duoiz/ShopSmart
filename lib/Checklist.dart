@@ -54,8 +54,8 @@ class _ChecklistState extends State<Checklist> {
       final itemName = item['name']!.toString();
 
       // Initialize controllers safely
-      _estPriceControllers[itemName] = TextEditingController(text: item['estPrice']?.toString() ?? "0.00");
-      _actualPriceControllers[itemName] = TextEditingController(text: item['actualPrice']?.toString() ?? "0.00");
+      _estPriceControllers[itemName] = TextEditingController(text: item['estPrice']?.toString());
+      _actualPriceControllers[itemName] = TextEditingController(text: item['actualPrice']?.toString());
 
       // Add listeners to save changes in real-time
       _estPriceControllers[itemName]!.addListener(() {
@@ -69,13 +69,28 @@ class _ChecklistState extends State<Checklist> {
   }
 
   void _updateItemPrice(String itemName, String priceType, String newValue) {
-    setState(() {
-      final itemIndex = items.indexWhere((item) => item['name'] == itemName);
-      if (itemIndex != -1) {
-        items[itemIndex][priceType] = newValue;
+    try {
+      // Validate the new value to ensure it's a valid number
+      if (newValue.isNotEmpty && double.tryParse(newValue) == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Invalid price format. Please enter a valid number.")),
+        );
+        return; // Exit if the format is invalid
       }
-    });
-    _saveUpdatedList(context.read<ListProvider>());
+
+      setState(() {
+        final itemIndex = items.indexWhere((item) => item['name'] == itemName);
+        if (itemIndex != -1) {
+          items[itemIndex][priceType] = newValue;
+        }
+      });
+      _saveUpdatedList(context.read<ListProvider>());
+    } catch (e) {
+      print("Error updating item price: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to update item price. Please try again.")),
+      );
+    }
   }
 
   void _disposeControllers() {
@@ -126,12 +141,19 @@ class _ChecklistState extends State<Checklist> {
           TextButton(onPressed: Navigator.of(context).pop, child: Text("Cancel")),
           TextButton(
             onPressed: () {
-              setState(() {
-                item['name'] = nameController.text;
-                item['qty'] = qtyController.text;
-                item['category'] = categoryController.text;
-              });
-              Navigator.pop(context);
+              try {
+                setState(() {
+                  item['name'] = nameController.text;
+                  item['qty'] = qtyController.text;
+                  item['category'] = categoryController.text;
+                });
+                Navigator.pop(context);
+              } catch (e) {
+                print("Error updating item: $e");
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Failed to update item. Please try again.")),
+                );
+              }
             },
             child: Text("Save"),
           ),
@@ -177,7 +199,7 @@ class _ChecklistState extends State<Checklist> {
                   // Add the new items to the updated list
                   for (var item in newItem) {
                     // Ensure 'estPrice' and 'actualPrice' are initialized
-                    item['estPrice'] = item['estPrice'] ?? "0.00";
+                    item['estPrice'] = item['estPrice'] ?? "";
                     item['actualPrice'] = item['actualPrice'] ?? "";
 
                     updatedItems.add(item);
