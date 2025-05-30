@@ -26,7 +26,7 @@ class _EditListBottomSheetState extends State<EditListBottomSheet> {
 
     final nameController = TextEditingController(text: item['name']);
     final qtyController = TextEditingController(text: item['qty']);
-    final categoryController = TextEditingController(text: item['category']);
+    String selectedCategory = item['category'] ?? "Uncategorized";
 
     showDialog(
       context: context,
@@ -35,11 +35,38 @@ class _EditListBottomSheetState extends State<EditListBottomSheet> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController),
+            TextField(controller: nameController, decoration: InputDecoration(hintText: "Item Name")),
             SizedBox(height: 10),
-            TextField(controller: qtyController),
+            TextField(controller: qtyController, decoration: InputDecoration(hintText: "Quantity/KG")),
             SizedBox(height: 10),
-            TextField(controller: categoryController),
+            DropdownButtonFormField<String>(
+              value: selectedCategory,
+              decoration: InputDecoration(hintText: "Category"),
+              items: const [
+                DropdownMenuItem(value: "Baby Products", child: Text("Baby Products")),
+                DropdownMenuItem(value: "Bakery", child: Text("Bakery")),
+                DropdownMenuItem(value: "Beverage", child: Text("Beverage")),
+                DropdownMenuItem(value: "Canned Goods", child: Text("Canned Goods")),
+                DropdownMenuItem(value: "Cleaning Supplies", child: Text("Cleaning Supplies")),
+                DropdownMenuItem(value: "Dairy", child: Text("Dairy")),
+                DropdownMenuItem(value: "Frozen Food", child: Text("Frozen Food")),
+                DropdownMenuItem(value: "Fruit", child: Text("Fruit")),
+                DropdownMenuItem(value: "Grains & Pasta", child: Text("Grains & Pasta")),
+                DropdownMenuItem(value: "Household", child: Text("Household")),
+                DropdownMenuItem(value: "Meat", child: Text("Meat")),
+                DropdownMenuItem(value: "Personal Care", child: Text("Personal Care")),
+                DropdownMenuItem(value: "Pet Supplies", child: Text("Pet Supplies")),
+                DropdownMenuItem(value: "Pharmacy", child: Text("Pharmacy")),
+                DropdownMenuItem(value: "Seafood", child: Text("Seafood")),
+                DropdownMenuItem(value: "Snack", child: Text("Snack")),
+                DropdownMenuItem(value: "Spices", child: Text("Spices")),
+                DropdownMenuItem(value: "Vegetable", child: Text("Vegetable")),
+                DropdownMenuItem(value: "Others", child: Text("Others")),
+              ],
+              onChanged: (value) {
+                selectedCategory = value ?? "Uncategorized";
+              },
+            ),
           ],
         ),
         actions: [
@@ -53,7 +80,7 @@ class _EditListBottomSheetState extends State<EditListBottomSheet> {
                 editedItems[index] = {
                   'name': nameController.text.trim(),
                   'qty': qtyController.text.trim(),
-                  'category': categoryController.text.trim(),
+                  'category': selectedCategory,
                 };
               });
               Navigator.pop(context);

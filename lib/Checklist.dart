@@ -121,7 +121,7 @@ class _ChecklistState extends State<Checklist> {
 
     final nameController = TextEditingController(text: item['name']);
     final qtyController = TextEditingController(text: item['qty']);
-    final categoryController = TextEditingController(text: item['category']);
+    String selectedCategory = item['category'] ?? "Uncategorized";
 
     showDialog(
       context: context,
@@ -134,7 +134,34 @@ class _ChecklistState extends State<Checklist> {
             SizedBox(height: 10),
             TextField(controller: qtyController, decoration: InputDecoration(hintText: "Quantity/KG")),
             SizedBox(height: 10),
-            TextField(controller: categoryController, decoration: InputDecoration(hintText: "Category")),
+            DropdownButtonFormField<String>(
+              value: selectedCategory,
+              decoration: InputDecoration(hintText: "Category"),
+              items: const [
+                DropdownMenuItem(value: "Baby Products", child: Text("Baby Products")),
+                DropdownMenuItem(value: "Bakery", child: Text("Bakery")),
+                DropdownMenuItem(value: "Beverage", child: Text("Beverage")),
+                DropdownMenuItem(value: "Canned Goods", child: Text("Canned Goods")),
+                DropdownMenuItem(value: "Cleaning Supplies", child: Text("Cleaning Supplies")),
+                DropdownMenuItem(value: "Dairy", child: Text("Dairy")),
+                DropdownMenuItem(value: "Frozen Food", child: Text("Frozen Food")),
+                DropdownMenuItem(value: "Fruit", child: Text("Fruit")),
+                DropdownMenuItem(value: "Grains & Pasta", child: Text("Grains & Pasta")),
+                DropdownMenuItem(value: "Household", child: Text("Household")),
+                DropdownMenuItem(value: "Meat", child: Text("Meat")),
+                DropdownMenuItem(value: "Personal Care", child: Text("Personal Care")),
+                DropdownMenuItem(value: "Pet Supplies", child: Text("Pet Supplies")),
+                DropdownMenuItem(value: "Pharmacy", child: Text("Pharmacy")),
+                DropdownMenuItem(value: "Seafood", child: Text("Seafood")),
+                DropdownMenuItem(value: "Snack", child: Text("Snack")),
+                DropdownMenuItem(value: "Spices", child: Text("Spices")),
+                DropdownMenuItem(value: "Vegetable", child: Text("Vegetable")),
+                DropdownMenuItem(value: "Others", child: Text("Others")),
+              ],
+              onChanged: (value) {
+                selectedCategory = value ?? "Uncategorized";
+              },
+            ),
           ],
         ),
         actions: [
@@ -145,7 +172,7 @@ class _ChecklistState extends State<Checklist> {
                 setState(() {
                   item['name'] = nameController.text;
                   item['qty'] = qtyController.text;
-                  item['category'] = categoryController.text;
+                  item['category'] = selectedCategory;
                 });
                 Navigator.pop(context);
               } catch (e) {
@@ -175,16 +202,6 @@ class _ChecklistState extends State<Checklist> {
           title: Text("Checklist", style: TextStyle(fontWeight: FontWeight.bold)),
           backgroundColor: const Color(0xFFF8F4EB),
           actions: [
-            IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) => EditListBottomSheet(items: items.map((item) => item.cast<String, String>()).toList()),
-                );
-              },
-            ),
             IconButton(
               icon: Icon(Icons.add),
               onPressed: () async {
@@ -303,7 +320,12 @@ class _ChecklistState extends State<Checklist> {
       onDismissed: (_) {
         setState(() {
           items.removeWhere((item) => item['name'] == itemName);
+          _checkedItems.remove(itemName);
+          _estPriceControllers.remove(itemName);
+          _actualPriceControllers.remove(itemName);
         });
+        _saveUpdatedList(context.read<ListProvider>());
+        context.read<ListProvider>().loadLists(); // If you have a loadLists() method
       },
       child: GestureDetector(
         onTap: () => _showEditItemDialog(context, itemName),
@@ -359,6 +381,10 @@ class _ChecklistState extends State<Checklist> {
                 ),
                 style: TextStyle(fontSize: 12),
               ),
+            ),
+            IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () => _showEditItemDialog(context, itemName),
             ),
           ],
         ),

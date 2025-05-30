@@ -3,7 +3,6 @@ import 'package:flutter_shopsmart/list_provider.dart';
 import 'package:provider/provider.dart';
 import 'notification_service.dart';
 import 'package:flutter_shopsmart/mainpage.dart';
-import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'splashscreen.dart';
 

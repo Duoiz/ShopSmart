@@ -58,7 +58,17 @@ class _AddListState extends State<AddList> {
       priority: Priority.high,
       showWhen: true,
       ongoing: true,
-      autoCancel: false,
+      playSound: true,
+      enableVibration: true,
+      autoCancel: true,
+      icon: '@mipmap/mijalogo',
+      largeIcon: DrawableResourceAndroidBitmap('@mipmap/mijalogo'),
+      styleInformation: BigTextStyleInformation(
+        'Today is your "$listName" day!',
+        htmlFormatBigText: true,
+        contentTitle: 'Shopping List Reminder',
+        htmlFormatContentTitle: true,
+      ),
     );
 
     final notificationDetails = NotificationDetails(android: details);
@@ -89,15 +99,18 @@ class _AddListState extends State<AddList> {
           TextButton(
             onPressed: () {
               // Validate selected day
-              if(selectedDay != null) {
-                Fluttertoast.showToast(
-                  msg: "The date was not selected. Default set to today.",
-                  toastLength: Toast.LENGTH_SHORT,
-                  gravity: ToastGravity.BOTTOM,
-                  backgroundColor: Colors.black87,
-                  textColor: Colors.white,
-                );
-              }
+
+            if (selectedDay.year == DateTime.now().year &&
+                selectedDay.month == DateTime.now().month &&
+                selectedDay.day == DateTime.now().day) {
+              Fluttertoast.showToast(
+                msg: "The date was not selected. Default set to today.",
+                toastLength: Toast.LENGTH_SHORT,
+                gravity: ToastGravity.BOTTOM,
+                backgroundColor: Colors.black87,
+                textColor: Colors.white,
+              );
+            }
               // Validate list name
               if (listName.trim().isEmpty) {
                 Fluttertoast.showToast(
@@ -132,7 +145,7 @@ class _AddListState extends State<AddList> {
                 return;
               }
               // Info for time (not required)
-              if (selectedTime == null) {
+              else if (selectedTime == null) {
                 Fluttertoast.showToast(
                   msg: "Time was not selected. Default set to 9:00 AM.",
                   toastLength: Toast.LENGTH_SHORT,
